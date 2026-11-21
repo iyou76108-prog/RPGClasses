@@ -1,0 +1,12 @@
+name: RPGClasses
+version: 1.0.0
+main: ru.rpgclasses.RPGClasses
+api-version: '1.21'
+description: RPG classes, attributes, abilities, levels and parties
+commands:
+  rpg:
+    description: Open the RPG character book
+    usage: /rpg
+permissions:
+  rpg.admin:
+    default: op
