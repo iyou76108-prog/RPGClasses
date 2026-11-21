@@ -171,18 +171,7 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
         player.openInventory(inv);
     }
 
-    private void openAbilities(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, ABILITIES);
-        Profile p = profile(player);
-        if (p.selectedClass == null) inv.setItem(13, icon(Material.BARRIER, "§cСначала выбери класс"));
-        else {
-            String key = p.selectedClass.name() + "_core";
-            int level = p.abilityLevels.getOrDefault(key, 0);
-            inv.setItem(13, icon(p.selectedClass.icon, "§d" + p.selectedClass.display + " — способность",
-                "§7Уровень: " + level + "/100", "§7Очки: " + p.abilityPoints, "§aНажми, чтобы улучшить"));
-        }
-        player.openInventory(inv);
-    }
+    private void openAbilities(Player player) { skillSystem.openPicker(player); }
 
     private void openInfo(Player player) {
         Profile p = profile(player);
