@@ -16,7 +16,7 @@ import java.util.*;
 @SuppressWarnings("deprecation")
 final class SkillSystem implements Listener {
     private final RPGClasses plugin;
-    private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private final Map<String, Long> cooldowns = new HashMap<>();
     private final Map<UUID, Integer> editing = new HashMap<>();
     private final Map<RPGClasses.RpgClass, Skill[]> trees = new EnumMap<>(RPGClasses.RpgClass.class);
     private static final String PICK = "§8Выбор способностей";
@@ -95,7 +95,7 @@ final class SkillSystem implements Listener {
         e.setCancelled(true); int slot=e.getRawSlot(); if(slot<0||slot>=e.getInventory().getSize()) return;
         RPGClasses.Profile prof=plugin.profile(p);
         if(title.equals(PICK)) {
-            int skill=(slot-10)/2; if(slot>=10&&slot<=16&&slot%2==0&&skill<4) openBind(p,skill);
+            int skill=(slot-10)/2; if(slot>=10&&slot<=16&&slot%2==0&&skill<4) { if(e.isShiftClick()) openTree(p,skill); else openBind(p,skill); }
             else if(slot==22) openTree(p,0);
         } else if(title.equals(BIND)&&slot>=9&&slot<=17) {
             int hotbar=slot-9, skill=editing.getOrDefault(p.getUniqueId(),0);
@@ -103,7 +103,7 @@ final class SkillSystem implements Listener {
             p.sendMessage("§aНавык назначен на клавишу "+hotbar+"."); openPicker(p);
         } else if(title.equals(TREE)) {
             if(slot==13&&prof.abilityPoints>0) {
-                int skill=0; int level=prof.abilityLevels.getOrDefault(key(prof,skill),0);
+                int skill=editing.getOrDefault(p.getUniqueId(),0); int level=prof.abilityLevels.getOrDefault(key(prof,skill),0);
                 if(level<10) { prof.abilityLevels.put(key(prof,skill),level+1); prof.abilityPoints--; plugin.saveProfiles(); openTree(p,skill); }
                 else p.sendMessage("§cМаксимальный уровень.");
             } else if(slot==22) openPicker(p);
@@ -122,10 +122,10 @@ final class SkillSystem implements Listener {
     private void cast(Player p,int index) {
         RPGClasses.Profile prof=plugin.profile(p); Skill s=trees.get(prof.selectedClass)[index];
         int level=prof.abilityLevels.getOrDefault(key(prof,index),0);
-        long now=System.currentTimeMillis(), ready=cooldowns.getOrDefault(p.getUniqueId()*31L+index,0L);
+        long now=System.currentTimeMillis(); String cooldownKey=p.getUniqueId()+":"+index; long ready=cooldowns.getOrDefault(cooldownKey,0L);
         if(now<ready) { p.sendActionBar("§cПерезарядка: "+((ready-now+999)/1000)+"с"); return; }
         double scale=1.0+level*0.12, power=s.power()*scale;
-        cooldowns.put(p.getUniqueId()*31L+index,now+Math.max(3000,(s.cooldown()-level/2)*1000L));
+        cooldowns.put(cooldownKey,now+Math.max(3000,(s.cooldown()-level/2)*1000L));
         LivingEntity target=target(p,12);
         switch(s.kind()) {
             case PROJECTILE -> {
