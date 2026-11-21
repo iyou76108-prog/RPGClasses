@@ -20,6 +20,7 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
     private final Map<UUID, Profile> profiles = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
     private final Set<UUID> awaitingPartyName = new HashSet<>();
+    private SkillSystem skillSystem;
     private NamespacedKey bookKey;
 
     private static final String MAIN = "§8RPG §7| §fПерсонаж";
@@ -71,6 +72,8 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
     @Override public void onEnable() {
         bookKey = new NamespacedKey(this, "character_book");
         getServer().getPluginManager().registerEvents(this, this);
+        skillSystem = new SkillSystem(this);
+        getServer().getPluginManager().registerEvents(skillSystem, this);
         Objects.requireNonNull(getCommand("rpg")).setExecutor(this);
         loadProfiles();
         getLogger().info("RPGClasses enabled");
@@ -78,7 +81,7 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
 
     @Override public void onDisable() { saveProfiles(); }
 
-    private Profile profile(Player player) {
+    Profile profile(Player player) {
         return profiles.computeIfAbsent(player.getUniqueId(), ignored -> new Profile());
     }
 
@@ -357,7 +360,7 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
         } catch (Exception ex) { getLogger().warning("Could not load player profile " + key); }
     }
 
-    private void saveProfiles() {
+    void saveProfiles() {
         var yaml = new org.bukkit.configuration.file.YamlConfiguration();
         for (var entry : profiles.entrySet()) {
             String id = entry.getKey().toString(); Profile p = entry.getValue();
