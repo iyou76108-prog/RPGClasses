@@ -71,9 +71,9 @@ final class SkillSystem implements Listener {
     private ItemStack item(Material mat, String name, String... lore) {
         ItemStack i = new ItemStack(mat); ItemMeta m=i.getItemMeta(); m.setDisplayName(name); m.setLore(Arrays.asList(lore)); i.setItemMeta(m); return i;
     }
-    private void openPicker(Player p) {
+    void openPicker(Player p) {
         Inventory inv=menu(PICK); Skill[] skills=trees.get(plugin.profile(p).selectedClass);
-        for(int i=0;i<4;i++) inv.setItem(10+i*2,item(skills[i].icon(),"§d"+(i+1)+". "+skills[i].name(),"§7"+skills[i].lore,"§eНажми, чтобы назначить клавишу"));
+        for(int i=0;i<4;i++) inv.setItem(10+i*2,item(skills[i].icon(),"§d"+(i+1)+". "+skills[i].name(),"§7"+skills[i].lore,"§eНажми — назначить клавишу","§bShift+нажатие — древо прокачки"));
         p.openInventory(inv);
     }
     private void openBind(Player p,int skill) {
