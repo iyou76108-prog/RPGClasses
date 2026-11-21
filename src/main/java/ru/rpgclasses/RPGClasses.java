@@ -233,6 +233,12 @@ public final class RPGClasses extends JavaPlugin implements Listener, CommandExe
             RpgClass[] classes = RpgClass.values();
             if (slot < classes.length) {
                 p.selectedClass = classes[slot];
+                ItemStack classItem = new ItemStack(p.selectedClass.icon);
+                ItemMeta classMeta = classItem.getItemMeta();
+                classMeta.setDisplayName("§eПредмет класса: " + p.selectedClass.display);
+                classMeta.setLore(List.of("§7Персональный предмет выбранного класса"));
+                classItem.setItemMeta(classMeta);
+                player.getInventory().addItem(classItem);
                 player.sendMessage("§aВыбран класс: §e" + p.selectedClass.display);
                 player.closeInventory(); saveProfiles();
             }
