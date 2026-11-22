@@ -1,0 +1,53 @@
+name: Build Basketball Plugin
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'BasketballPlugin-1.0.0-source.zip'
+      - '.github/workflows/build-basketball.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Extract Basketball sources
+        run: unzip -q BasketballPlugin-1.0.0-source.zip -d /tmp
+
+      - name: Build JAR
+        run: mvn --batch-mode -f /tmp/BasketballPlugin/pom.xml clean package
+
+      - name: Prepare downloadable files
+        run: |
+          mkdir -p dist
+          cp /tmp/BasketballPlugin/target/Basketball-1.0.0.jar dist/
+          cp BasketballPlugin-1.0.0-source.zip dist/Basketball-1.0.0-source.zip
+          cp /tmp/BasketballPlugin/README_RU.md dist/README_RU.md
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Basketball-Purpur-1.21.11
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.zip --title "Basketball v1.0.0 for Purpur 1.21.11" --notes-file dist/README_RU.md --target "$GITHUB_SHA" || gh release upload basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.zip --clobber
