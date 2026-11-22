@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'BasketballPlugin-1.0.0-source.zip'
+      - 'BasketballPlugin.archive.b64/**'
       - '.github/workflows/build-basketball.yml'
   workflow_dispatch:
 
@@ -25,8 +25,12 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Extract Basketball sources
-        run: unzip -q BasketballPlugin-1.0.0-source.zip -d /tmp
+      - name: Reconstruct and verify source archive
+        run: |
+          mkdir -p /tmp/BasketballPlugin
+          cat BasketballPlugin.archive.b64/part-00.txt BasketballPlugin.archive.b64/part-01.txt BasketballPlugin.archive.b64/part-02.txt BasketballPlugin.archive.b64/part-03.txt | tr -d '\n' | base64 --decode > /tmp/BasketballPlugin-source.tar.xz
+          xz --test /tmp/BasketballPlugin-source.tar.xz
+          tar -xJf /tmp/BasketballPlugin-source.tar.xz -C /tmp/BasketballPlugin
 
       - name: Build JAR
         run: mvn --batch-mode -f /tmp/BasketballPlugin/pom.xml clean package
@@ -35,8 +39,7 @@ jobs:
         run: |
           mkdir -p dist
           cp /tmp/BasketballPlugin/target/Basketball-1.0.0.jar dist/
-          cp BasketballPlugin-1.0.0-source.zip dist/Basketball-1.0.0-source.zip
-          cp /tmp/BasketballPlugin/README_RU.md dist/README_RU.md
+          cp /tmp/BasketballPlugin-source.tar.xz dist/Basketball-1.0.0-source.tar.xz
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -50,4 +53,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.zip --title "Basketball v1.0.0 for Purpur 1.21.11" --notes-file dist/README_RU.md --target "$GITHUB_SHA" || gh release upload basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.zip --clobber
+          gh release create basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.tar.xz --title "Basketball v1.0.0 for Purpur 1.21.11" --notes "Basketball plugin for Purpur 1.21.11, built with Java 21. Download the JAR and put it in the server plugins folder." --target "$GITHUB_SHA" || gh release upload basketball-v1.0.0 dist/Basketball-1.0.0.jar dist/Basketball-1.0.0-source.tar.xz --clobber
