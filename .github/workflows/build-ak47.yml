@@ -1,0 +1,74 @@
+name: Build AK-47 Plugin
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'AK47Plugin.archive.b64/**'
+      - '.github/workflows/build-ak47.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set up Gradle 9.2.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+
+      - name: Restore and verify AK-47 source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat AK47Plugin.archive.b64/part-*.txt | tr -d '\n' | base64 --decode > /tmp/AK47Plugin.tar.xz
+          xz --test /tmp/AK47Plugin.tar.xz
+          mkdir -p /tmp/ak47-src
+          tar -xJf /tmp/AK47Plugin.tar.xz -C /tmp/ak47-src
+          test -f /tmp/ak47-src/AK47Plugin/pom.xml
+          test -f /tmp/ak47-src/AK47Plugin/src/main/java/ru/ak47/AK47Plugin.java
+          test -f /tmp/ak47-src/AK47Plugin/resource-pack/pack.mcmeta
+
+      - name: Build Purpur plugin JAR
+        run: mvn --batch-mode -f /tmp/ak47-src/AK47Plugin/pom.xml clean package
+
+      - name: Build Fabric client mod JAR
+        run: gradle --no-daemon -p /tmp/ak47-src/AK47Plugin/client-mod build
+
+      - name: Prepare downloadable release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp /tmp/ak47-src/AK47Plugin/target/AK47-1.0.0.jar dist/
+          cp /tmp/ak47-src/AK47Plugin/client-mod/build/libs/AK47-Reload-Key-1.0.0.jar dist/
+          (cd /tmp/ak47-src/AK47Plugin/resource-pack && zip -qr "$GITHUB_WORKSPACE/dist/AK47-Resource-Pack-1.0.0.zip" .)
+          cp /tmp/AK47Plugin.tar.xz dist/AK47-Purpur-1.21.11-Source.tar.xz
+          cp /tmp/ak47-src/AK47Plugin/README_RU.md dist/
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AK47-Purpur-1.21.11
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ak47-v1.0.0 dist/AK47-1.0.0.jar dist/AK47-Reload-Key-1.0.0.jar dist/AK47-Resource-Pack-1.0.0.zip dist/AK47-Purpur-1.21.11-Source.tar.xz --title "AK-47 v1.0.0 for Purpur 1.21.11" --notes-file dist/README_RU.md --target "$GITHUB_SHA" || gh release upload ak47-v1.0.0 dist/AK47-1.0.0.jar dist/AK47-Reload-Key-1.0.0.jar dist/AK47-Resource-Pack-1.0.0.zip dist/AK47-Purpur-1.21.11-Source.tar.xz --clobber
