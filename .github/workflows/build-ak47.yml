@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'AK47Plugin.archive.b64/**'
+      - 'AK47Plugin/patches/**'
       - '.github/workflows/build-ak47.yml'
   workflow_dispatch:
 
@@ -42,6 +43,21 @@ jobs:
           test -f /tmp/ak47-src/AK47Plugin/src/main/java/ru/ak47/AK47Plugin.java
           test -f /tmp/ak47-src/AK47Plugin/resource-pack/pack.mcmeta
 
+      - name: Apply Minecraft 1.21.11 client input fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("/tmp/ak47-src/AK47Plugin/client-mod/src/main/java/ru/ak47/client/AK47ReloadKeyClient.java")
+          code = source.read_text(encoding="utf-8")
+          old = "GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS"
+          if old not in code:
+              raise SystemExit("Expected old mouse-input expression was not found; refusing to patch unexpected source.")
+          code = code.replace(old, "client.mouseHandler.isRightPressed()")
+          code = code.replace("import org.lwjgl.glfw.GLFW;\\n", "")
+          source.write_text(code, encoding="utf-8")
+          PY
+
       - name: Build Purpur plugin JAR
         run: mvn --batch-mode -f /tmp/ak47-src/AK47Plugin/pom.xml clean package
 
@@ -56,7 +72,7 @@ jobs:
           cp /tmp/ak47-src/AK47Plugin/target/AK47-1.0.0.jar dist/
           cp /tmp/ak47-src/AK47Plugin/client-mod/build/libs/AK47-Reload-Key-1.0.0.jar dist/
           (cd /tmp/ak47-src/AK47Plugin/resource-pack && zip -qr "$GITHUB_WORKSPACE/dist/AK47-Resource-Pack-1.0.0.zip" .)
-          cp /tmp/AK47Plugin.tar.xz dist/AK47-Purpur-1.21.11-Source.tar.xz
+          tar -cJf dist/AK47-Purpur-1.21.11-Source.tar.xz --exclude='AK47Plugin/target' --exclude='AK47Plugin/client-mod/build' -C /tmp/ak47-src AK47Plugin
           cp /tmp/ak47-src/AK47Plugin/README_RU.md dist/
 
       - name: Upload CI artifacts
