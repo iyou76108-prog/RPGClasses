@@ -1,0 +1,7 @@
+--- a/client-mod/src/main/java/ru/ak47/client/AK47ReloadKeyClient.java
++++ b/client-mod/src/main/java/ru/ak47/client/AK47ReloadKeyClient.java
+@@
+-import org.lwjgl.glfw.GLFW;
+@@
+-                    GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
++                    client.mouseHandler.isRightPressed();
